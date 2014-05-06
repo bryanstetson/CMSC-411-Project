@@ -10,7 +10,7 @@ basePrompt:	.asciiz "Enter a base (10=Decimal, 8=Octal, 16=Hex): "
 
 test:	.asciiz "test"
 
-binNum:		.space 16
+binNum:		.space 17
 decResult:	.asciiz "Decimal: "
 octResult:	.asciiz "Octal: "
 hexResult:	.asciiz "Hex: "			
@@ -107,6 +107,10 @@ printDecResult:
 
 binToHex:
 	#Will use binToDec to convert 4 binary strings to their decimal representation. Then will give ASCII values of those nibbles
+
+	la	$a0, hexResult
+	li	$v0, 4
+	syscall
 
 	li	$t3, 32		#Set $t9 as a flag to not print binToDec.	
 	j	binToDec	#Set $t4 as the decimal number needed to make hex	
