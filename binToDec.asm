@@ -13,7 +13,7 @@ test:	.asciiz "test"
 binNum:		.space 16
 decResult:	.asciiz "Decimal: "
 octResult:	.asciiz "Octal: "
-#hexResult:	.asciiz "Hex: "			#UNCOMMENT!!
+hexResult:	.asciiz "Hex: "			
 	
 	.text
 	.globl main
@@ -25,13 +25,14 @@ main:
 
 BinaryPrompt:
 	# Print binary prompt to user
+	li	$t3, 0	# reset flag
 	li	$v0, 4        
 	la 	$a0, binPrompt    
 	syscall
 
 	# Get binary input from user
 	la	$a0, binNum
-	li	$a1, 16		
+	li	$a1, 17		
 	li	$v0, 8          
 	syscall
 
@@ -60,7 +61,7 @@ BasePrompt:
 	# Check that the base is valid
 	beq $v0, 10, binToDec	# Jump to decimal convert if 10
 	beq $v0, 8, binToOct	# Jump to octal convert if 8
-	#beq $v0, 16, binToHex	# Jump to hex convert if 16  		#UNCOMMENT!!
+	beq $v0, 16, binToHex	# Jump to hex convert if 16  		
 	j	BasePrompt
 
 binToDec:
@@ -89,7 +90,9 @@ one:
 	j 	binToDec
 
 printDecResult:
+	
 	srlv 	$t4, $t4, $t9
+	beq	$t3, 32, hexInit	#flag to not print for binToHex
 
 	# Print result header
 	la 	$a0, decResult
@@ -101,6 +104,59 @@ printDecResult:
 	li 	$v0, 1      
 	syscall
 	j 	exit
+
+binToHex:
+	#Will use binToDec to convert 4 binary strings to their decimal representation. Then will give ASCII values of those nibbles
+
+	li	$t3, 32		#Set $t9 as a flag to not print binToDec.	
+	j	binToDec	#Set $t4 as the decimal number needed to make hex	
+	
+hexInit:
+	#Pre-Condition: $t4 is set to decimal value of the string
+	li	$t9, 61440	#Mask to get nibble (1111000000000000)
+	li	$t1, 0		#Counter
+	li	$t8, 3		#Decrement Counter	
+	j	hexLoop
+
+hexLoop:
+	beq	$t1, 4, exit	# if looped 3 times exit
+	li	$t6, 4		
+	mult	$t1, $t6	# 4*counter = shift value of mask
+	mflo	$t2
+	srlv	$t9, $t9,$t2	# Shift Mask
+
+	and	$t5, $t9, $t4	# get nibble
+	mult	$t8, $t6	# get number of bits to shift the nibble by
+	mflo	$t2
+	srlv	$t5, $t5, $t2	# nibble is now at last 4 bits
+	
+	li	$t2, 10
+	sub	$t6, $t5, $t2
+	addi	$t1, 1		#increment counter
+	addi	$t8, -1		#decrement counter
+	li	$t9, 61440	
+	
+	bgez	$t6, nonNumericPrint	#if output is not numeric (nibble >= 10)
+	
+	j	printHexResult
+		
+	
+printHexResult:
+	addi	$t5, 48
+	move	$a0, $t5
+	li	$v0, 11
+	syscall
+	j	hexLoop 
+
+nonNumericPrint:
+
+	addi	$t6, 65
+	move 	$a0, $t6
+	li	$v0, 11
+	syscall
+	j	hexLoop 				
+	
+
 
 binToOct:
 	# Counter1 = $t7, keeps track of current bit
