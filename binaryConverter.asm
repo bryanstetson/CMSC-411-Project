@@ -229,6 +229,6 @@ printOctResult:
 
 
 exit:
-	li 	$v0, 10			# Exit the program (implement exit later)
+	li 	$v0, 10			# Exit the program 
 	syscall
 
