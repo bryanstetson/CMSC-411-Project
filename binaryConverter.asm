@@ -47,6 +47,7 @@ BinaryPrompt:
 	li	$t9, 16   
 	# Initialize binToOct counter to 0
 	li	$t8, 0
+	li  $t6, 0
 
 BasePrompt:
 	# Print base conversion prompt to user
@@ -164,37 +165,52 @@ nonNumericPrint:
 
 
 binToOct:
-	# Counter1 = $t7, keeps track of current bit
-	# Counter2 = $t8, keeps track of current octal
+	# Counter1 = $t6, keeps track of total bits in input
+	# Counter2 = $t7, keeps track of current bit in triad
+	# Counter3 = $t8, keeps track of current octal triad
 	# Answer = $t4
 	# Temp = t3, temporarily holds values to be added to the answer
 	# Extra = t5, used for calculations
-	# Reset counter for current bit
+	# Figure out how long the user input string is (for reading r->l)
+	lb	$a0, ($t1)
+	blt	$a0, 48, octLoopPrep
+	addi	$t1, $t1, 1 
+	addi	$t6, $t6, 1
+	j 		binToOct 
+
+octLoopPrep:
+	addi	$t1, $t1, -1 			# Decrement offset
+	
+octLoop:
+	# Reset counter for current bit	
 	li 	$t3, 0
 	li	$t7, 0
 
-	lb	$a0, ($t1)					# Take first input bit
-	blt	$a0, 48, printOctResult 	# Go to the end
-	addi	$t1, $t1, 1 			# Increment offset
+	beq	$t6, 0, printOctResult		# If counter = 0 -> done
+	lb	$a0, ($t1) 					# Take first input bit
 	addi	$a0, $a0, -48			# Convert to 1 or 0
 	sllv	$a0, $a0, $t7			# Shift into position
-	addi	$t7, $t7, 1 			# Increment count1
+	addi	$t7, $t7, 1 			# Increment count2
+	addi	$t1, $t1, -1 			# Decrement offset
+	addi	$t6, $t6, -1 			# Decrement counter1
 	or 		$t3, $t3, $a0			# Place bit onto temp answer
 
-	lb	$a0, ($t1)					# Take second input bit
-	blt	$a0, 48, octProcess 		# Go to the octal processing
-	addi	$t1, $t1, 1 			# Increment offset
+	beq	$t6, 0, octProcess			# If counter = 0 -> done
+	lb	$a0, ($t1) 					# Take second input bit
 	addi	$a0, $a0, -48			# Convert to 1 or 0
 	sllv	$a0, $a0, $t7			# Shift into position
-	addi	$t7, $t7, 1 			# Increment count1
+	addi	$t7, $t7, 1 			# Increment count2
+	addi	$t1, $t1, -1 			# Decrement offset
+	addi	$t6, $t6, -1 			# Decrement counter1
 	or 		$t3, $t3, $a0			# Place bit onto temp answer
 
-	lb	$a0, ($t1)					# Take third input bit
-	blt	$a0, 48, octProcess 		# Go to the octal processing
-	addi	$t1, $t1, 1 			# Increment offset
+	beq	$t6, 0, octProcess			# If counter = 0 -> done
+	lb	$a0, ($t1) 					# Take third input bit
 	addi	$a0, $a0, -48			# Convert to 1 or 0
 	sllv	$a0, $a0, $t7			# Shift into position
-	addi	$t7, $t7, 1 			# Increment count1
+	addi	$t7, $t7, 1 			# Increment count2
+	addi	$t1, $t1, -1 			# Decrement offset
+	addi	$t6, $t6, -1 			# Decrement counter1
 	or 		$t3, $t3, $a0			# Place bit onto temp answer
 
 octProcess:
@@ -206,13 +222,13 @@ octPower:							# Basically does $t3*10^$t8
 	li		$t5, 10				
 	mult	$t3, $t5				
 	mflo 	$t3
-	addi	$t2, $t2, -1 			# decrement count
+	addi	$t2, $t2, -1
 	j 		octPower 				
 
 octContinue:
 	add 	$t4, $t4, $t3
-	addi	$t8, $t8, 1 			# Increment count2
-	j 		binToOct
+	addi	$t8, $t8, 1 			# Increment count3
+	j 		octLoop
 
 
 printOctResult:
